@@ -9,7 +9,7 @@ To evaluate our method, we used The dataset of [The 2017 PhysioNet Challenge][da
 # Requirements
 * [Tensorflow][tensorflow_link] version >=1.13.1.
 * [Keras][keras_link] version >=2.2.4
-* Some basic python packages such as Numpy, Matplotlib.
+* Some basic python packages such as Numpy, Matplotlib, pandas.
 
 [data_link]:https://physionet.org/content/challenge-2017/1.0.0/
 [tensorflow_link]:https://www.tensorflow.org/

@@ -1,15 +1,16 @@
 import tensorflow as tf
+from keras import  backend as K
 from keras.models import Model, load_model
 from keras.layers import Input, Activation, Dense, Flatten
-from keras.layers import Concatenate,Reshape,multiply
-from keras.layers.merge import add
+from keras.layers import Reshape,multiply
+from keras.layers.merge import add, concatenate
 from keras.layers import Dropout
 from keras.layers import Conv1D, BatchNormalization,LSTM
 from keras.layers import ZeroPadding1D, UpSampling1D,Cropping1D
 from keras.layers.pooling import MaxPooling1D
 
 
-__all__ = ['RTA_CNN', 'VGG12', 'RESNET50', 'MSCNN', 'ATICNN']
+__all__ = ['RTA_CNN', 'VGG12', 'RESNET50', 'MSCNN', 'ATICNN', '1DCNN']
 
 # RTA-CNN
 def conv_block(in_x, nb_filter, kernel_size):
@@ -75,6 +76,50 @@ def RTA_CNN():
     x = RTA_block(x, 128, 3)
     x = MaxPooling1D(2)(x)
     x = RTA_block(x, 128, 3)
+    x = MaxPooling1D(2)(x)
+
+    x = Flatten()(x)
+    x = Dense(100,  activation='relu')(x)
+    x = Dense(3,  activation='softmax')(x)
+    
+    model = Model(inputs, x)
+    
+    return model
+
+
+#1DCNN
+def WDCNN():
+    
+    inputs = Input((9000, 1))
+    
+    x = Conv1D(16, 3, padding='same')(inputs)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = MaxPooling1D(4)(x)
+    
+    x = Conv1D(32, 3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = MaxPooling1D(4)(x)
+    
+    x = Conv1D(64, 3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = MaxPooling1D(2)(x)
+    
+    x = Conv1D(64, 3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = MaxPooling1D(2)(x)
+    
+    x = Conv1D(128, 3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = MaxPooling1D(2)(x)
+    
+    x = Conv1D(128, 3, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
     x = MaxPooling1D(2)(x)
 
     x = Flatten()(x)
@@ -375,7 +420,7 @@ def ATICNN():
 def focal_loss(y_true, y_pred):
     
     epsilon = 1.e-7
-    alpha = tf.constant([[1],[4],[4]], dtype=tf.float32)
+    alpha = tf.constant([[1],[1],[1]], dtype=tf.float32)
     gamma = float(0.3)
 
     y_true = tf.cast(y_true, tf.float32)

@@ -1,6 +1,8 @@
+import os
 import random
 import logging
 import numpy as np
+import matplotlib.pyplot as plt 
 from keras.utils import to_categorical
 
 
@@ -10,7 +12,7 @@ def get_logger(filename, verbosity=1, name=None):
     logger = logging.getLogger(name)
     logger.setLevel(level_dict[verbosity])
 
-    fh = logging.FileHandler(filename, "w")
+    fh = logging.FileHandler(filename, "a+")
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 
@@ -20,13 +22,13 @@ def get_logger(filename, verbosity=1, name=None):
 
     return logger
 
-def get_folders(ex):
+def get_folds(ex):
     numlist = list(range(4))
     numlist.remove(ex)
     numlist = [str(num) for num in numlist]
-    folder = "folder" + "".join(numlist)
-    test_folder = "folder" + str(ex)
-    return folder, test_folder
+    fold = "fold" + "".join(numlist)
+    test_fold = "fold" + str(ex)
+    return fold, test_fold
 
 def normalization_processing(data):
     
@@ -69,15 +71,15 @@ def signal_processing(data):
 
 class Generaor():
 
-    def __init__(self, folder, batch_size, category=None):
-        self.folder = folder
+    def __init__(self, fold, batch_size, category=None):
+        self.fold = fold
         self.category = category
-        self.self.batch_size = self.batch_size
+        self.batch_size = batch_size
 
         if self.category is not None:
-            self.data_num = len(os.listdir("folds/" + os.join(self.folder, self.category) + "/data/"))
+            self.data_num = len(os.listdir("folds/" + os.path.join(self.fold, self.category) + "/data/"))
         else:
-            self.data_num = len(os.listdir("folds/" + self.folder + "/data/"))
+            self.data_num = len(os.listdir("folds/" + self.fold + "/data/"))
 
     def get_data(self):
         data_list = np.zeros((self.batch_size, 9000, 1), dtype = np.float32)
@@ -93,11 +95,11 @@ class Generaor():
                 num_id = str(id)
                 
                 if self.category is not None:
-                    data_1 = np.load("folds/"  + os.join(self.folder, self.category) + "/data/" + num_id + ".npy")
-                    lab_1 = np.load("folds/" + os.join(self.folder, self.category) + "/label/" + num_id + ".npy")
+                    data_1 = np.load("folds/"  + os.path.join(self.fold, self.category) + "/data/" + num_id + ".npy")
+                    lab_1 = np.load("folds/" + os.path.join(self.fold, self.category) + "/label/" + num_id + ".npy")
                 else:
-                    data_1 = np.load("folds/" + folder + "/data/" + num_id + ".npy")
-                    lab_1 = np.load("folds/" + folder + "/label/" + num_id + ".npy")
+                    data_1 = np.load("folds/" + self.fold + "/data/" + num_id + ".npy")
+                    lab_1 = np.load("folds/" + self.fold + "/label/" + num_id + ".npy")
 
                 data = signal_processing(data_1)
                 data = normalization_processing(data)
@@ -113,3 +115,4 @@ class Generaor():
                     flag = 0
                     data_list = np.zeros((self.batch_size, 9000, 1), dtype = np.float32)
                     lab_list = np.zeros((self.batch_size))
+
