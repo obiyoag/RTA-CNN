@@ -13,7 +13,7 @@ def create_parser():
     parser.add_argument('--lr', default=1e-4, type=float, metavar='LR', help='learning rate')
     parser.add_argument('--epoch2save', default=80, type=int, metavar='N', help='the starting epoch to models (default: 80)')
     parser.add_argument('--summary', default=False, type=bool, help="print the model summary")
-    parser.add_argument('--gpu_fraction', default=0.2, type=float, help='set the fraction of gpu memory  is used')
+    parser.add_argument('--gpu_fraction', default=0.5, type=float, help='set the fraction of gpu memory  is used')
 
 
     return parser

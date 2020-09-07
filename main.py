@@ -9,7 +9,6 @@ import architectures
 
 from keras.callbacks import Callback
 from keras import optimizers
-from keras.losses import categorical_crossentropy
 from keras.layers.merge import concatenate
 from keras.callbacks import ReduceLROnPlateau
 from keras import  backend as K
@@ -29,7 +28,8 @@ def train():
     adam = optimizers.adam(lr=args.lr)
     model_factory = architectures.__dict__[args.arch]
     model = model_factory()
-    model.compile(optimizer = 'adam', loss=architectures.focal_loss, metrics = ["accuracy"])
+    model.compile(optimizer = 'adam', loss=architectures.en_loss, metrics = ["accuracy"])
+
     if args.summary:
         model.summary()
 
@@ -42,7 +42,7 @@ def train():
                 self.model_to_save.save(ex_path + '/models/model_%d.h5' % epoch)
     
     cbk = MyCbk(model)
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.90, patience=5, verbose=0, mode='auto', cooldown=0, min_lr=1e-7)
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.90, patience=5, verbose=0, mode='auto', cooldown=0, min_lr=5e-6)
     results = model.fit_generator(train_genrator.get_data(), 
               steps_per_epoch = train_genrator.data_num/args.batch_size,
               validation_data = test_genrator.get_data(),
@@ -84,7 +84,7 @@ def test():
 
     for id in range(args.epoch2save, args.epochs):
 
-        model =  load_model(ex_path + '/models/model_'+str(id)+'.h5', custom_objects={'focal_loss': architectures.focal_loss})
+        model =  load_model(ex_path + '/models/model_'+str(id)+'.h5', custom_objects={'en_loss': architectures.en_loss})
 
         af_score = model.evaluate_generator(generator=af_generator.get_data(), steps=af_generator.data_num//args.batch_size)
         normal_score = model.evaluate_generator(generator=normal_generator.get_data(), steps=normal_generator.data_num//args.batch_size)
@@ -108,6 +108,9 @@ def test():
 
 
 if __name__ == "__main__":
+
+    K.clear_session()
+    tf.reset_default_graph()
 
     args = cli.parse_commandline_args()
     ex = args.experiment_index

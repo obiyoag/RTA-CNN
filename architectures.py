@@ -6,11 +6,12 @@ from keras.layers import Reshape,multiply
 from keras.layers.merge import add, concatenate
 from keras.layers import Dropout
 from keras.layers import Conv1D, BatchNormalization,LSTM
-from keras.layers import ZeroPadding1D, UpSampling1D,Cropping1D
+from keras.layers import ZeroPadding1D, UpSampling1D,Cropping1D, GlobalAveragePooling1D
 from keras.layers.pooling import MaxPooling1D
+from keras import initializers, regularizers
 
 
-__all__ = ['RTA_CNN', 'VGG12', 'RESNET50', 'MSCNN', 'ATICNN', '1DCNN']
+__all__ = ['RTA_CNN', 'VGG12', 'RESNET50', 'MSCNN', 'SENET', 'WDCNN']
 
 # RTA-CNN
 def conv_block(in_x, nb_filter, kernel_size):
@@ -64,6 +65,7 @@ def RTA_CNN():
     
     x = RTA_block(inputs, 16, 32)
     x = MaxPooling1D(4)(x)
+
     
     x = RTA_block(x, 32, 16)
     x = MaxPooling1D(4)(x)
@@ -72,14 +74,18 @@ def RTA_CNN():
     x = MaxPooling1D(2)(x)
     x = RTA_block(x, 64, 9)
     x = MaxPooling1D(2)(x)
-    
+    x = Dropout(0.6)(x)
+
     x = RTA_block(x, 128, 3)
     x = MaxPooling1D(2)(x)
     x = RTA_block(x, 128, 3)
     x = MaxPooling1D(2)(x)
+    x = Dropout(0.6)(x)
 
     x = Flatten()(x)
+    x = Dropout(0.7)(x)
     x = Dense(100,  activation='relu')(x)
+    x = Dropout(0.7)(x)
     x = Dense(3,  activation='softmax')(x)
     
     model = Model(inputs, x)
@@ -92,22 +98,22 @@ def WDCNN():
     
     inputs = Input((9000, 1))
     
-    x = Conv1D(16, 3, padding='same')(inputs)
+    x = Conv1D(16, 32, padding='same')(inputs)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = MaxPooling1D(4)(x)
     
-    x = Conv1D(32, 3, padding='same')(x)
+    x = Conv1D(32, 16, padding='same')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = MaxPooling1D(4)(x)
     
-    x = Conv1D(64, 3, padding='same')(x)
+    x = Conv1D(64, 9, padding='same')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = MaxPooling1D(2)(x)
     
-    x = Conv1D(64, 3, padding='same')(x)
+    x = Conv1D(64, 9, padding='same')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = MaxPooling1D(2)(x)
@@ -163,10 +169,12 @@ def VGG12():
     x = Conv1D(512, 3, padding='same')(x)
     x = Activation('relu')(x)
     x = MaxPooling1D(4)(x)
-    
 
+    
     x = Flatten()(x)
-    x = Dense(100,  activation='relu')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(450,  activation='relu')(x)
+    x = Dropout(0.5)(x)
     x = Dense(3,  activation='softmax')(x)
     
     model = Model(inputs, x)
@@ -180,15 +188,15 @@ def identity_block(in_x, nb_filters):
     
     x = in_x
     
-    x = Conv1D(F1, 1, padding="same")(x)
+    x = Conv1D(F1, 1, padding="same", kernel_initializer="he_normal")(x)
     x = BatchNormalization()(x)
     x = Activation("relu")(x)
     
-    x = Conv1D(F2, 3, padding="same")(x)
+    x = Conv1D(F2, 3, padding="same", kernel_initializer="he_normal")(x)
     x = BatchNormalization()(x)
     x = Activation("relu")(x)
 
-    x = Conv1D(F3, 1,  padding="same")(x)
+    x = Conv1D(F3, 1,  padding="same", kernel_initializer="he_normal")(x)
     x = BatchNormalization()(x)
     
     x = add([x, in_x])
@@ -202,18 +210,18 @@ def convolutional_block(in_x, nb_filters, stride):
     
     x = in_x
 
-    x = Conv1D(F1, 1, strides=stride,  padding='same')(x)
+    x = Conv1D(F1, 1, strides=stride,  padding='same', kernel_initializer="he_normal")(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
 
-    x = Conv1D(F2, 3, strides=1, padding='same')(x)
+    x = Conv1D(F2, 3, strides=1, padding='same', kernel_initializer="he_normal")(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
 
-    x = Conv1D(F3, 1, strides=1, padding='same')(x)
+    x = Conv1D(F3, 1, strides=1, padding='same', kernel_initializer="he_normal")(x)
     x = BatchNormalization()(x)
 
-    x1 = Conv1D(F3, 1, strides=stride, padding='same')(in_x)
+    x1 = Conv1D(F3, 1, strides=stride, padding='same', kernel_initializer="he_normal")(in_x)
     x1 = BatchNormalization()(x1)
 
     x = add([x, x1])
@@ -224,41 +232,43 @@ def convolutional_block(in_x, nb_filters, stride):
 def RESNET50():
     
     inputs = Input((9000, 1))
+
+    filter_num = 64
     
-    x = Conv1D(64, 7, strides=2)(inputs)
+    x = Conv1D(filter_num, 7, strides=2, kernel_initializer="he_normal")(inputs)
     x = BatchNormalization()(x)
     x = Activation("relu")(x)
     x = MaxPooling1D(3, stride=2)(x)
 
-    x = convolutional_block(x, [64, 64, 256], 4)
-    x = identity_block(x, [64, 64, 256])
-    x = identity_block(x, [64, 64, 256])
+    x = convolutional_block(x, [filter_num, filter_num, filter_num * 4], 4)
+    x = identity_block(x, [filter_num, filter_num, filter_num * 4])
+    x = identity_block(x, [filter_num, filter_num, filter_num * 4])
     
-    x = convolutional_block(x, [128, 128, 512], 4)
-    x = identity_block(x, [128, 128, 512])
-    x = identity_block(x, [128, 128, 512])
-    x = identity_block(x, [128, 128, 512])
+    x = convolutional_block(x, [filter_num * 2, filter_num * 2, filter_num * 8], 4)
+    x = identity_block(x, [filter_num * 2, filter_num * 2, filter_num * 8])
+    x = identity_block(x, [filter_num * 2, filter_num * 2, filter_num * 8])
+    x = identity_block(x, [filter_num * 2, filter_num * 2, filter_num * 8])
     
-    x = convolutional_block(x, [256, 256, 1024], 2)
-    x = identity_block(x, [256, 256, 1024])
-    x = identity_block(x, [256, 256, 1024])
-    x = identity_block(x, [256, 256, 1024])
-    x = identity_block(x, [256, 256, 1024])
-    x = identity_block(x, [256, 256, 1024])
+    x = convolutional_block(x, [filter_num * 4, filter_num * 4, filter_num * 16], 2)
+    x = identity_block(x, [filter_num * 4, filter_num * 4, filter_num * 16])
+    x = identity_block(x, [filter_num * 4, filter_num * 4, filter_num * 16])
+    x = identity_block(x, [filter_num * 4, filter_num * 4, filter_num * 16])
+    x = identity_block(x, [filter_num * 4, filter_num * 4, filter_num * 16])
+    x = identity_block(x, [filter_num * 4, filter_num * 4, filter_num * 16])
     
-    x = convolutional_block(x, [512, 512, 2048], 2)
-    x = identity_block(x, [512, 512, 2048])
-    x = identity_block(x, [512, 512, 2048])
+    x = convolutional_block(x, [filter_num * 8, filter_num * 8, filter_num * 32], 2)
+    x = identity_block(x, [filter_num * 8, filter_num * 8, filter_num * 32])
+    x = identity_block(x, [filter_num * 8, filter_num * 8, filter_num * 32])
     
     x = GlobalAveragePooling1D()(x)
-    
-    x = Dense(500, activation="relu")(x)
+    x = Dense(500, activation="relu", kernel_initializer="he_normal")(x)
     x = Dense(3, activation="softmax")(x)
     
     model = Model(inputs, x)
 
     return model
 
+#MSCNN
 def MSCNN():
     
     inputs = Input((9000, 1))
@@ -351,8 +361,6 @@ def MSCNN():
     
     
     x = Flatten()(x)
-    x = Dense(1024,  activation='relu')(x)
-    x = Dense(1024,  activation='relu')(x)
     x = Dense(256,  activation='relu')(x)
     x = Dense(3,  activation='softmax')(x)
     
@@ -360,67 +368,73 @@ def MSCNN():
     
     return model
 
+#SENET
+def se_block(in_x, nb_filter):
+        squeeze = GlobalAveragePooling1D()(in_x)
+        excitation = Dense(units=nb_filter // 2)(squeeze)
+        excitation = Activation('relu')(excitation)
+        excitation = Dense(units=nb_filter)(excitation)
+        excitation = Activation('sigmoid')(excitation)
+        excitation = Reshape((1,nb_filter))(excitation)
+        scale = multiply([in_x,excitation])
+        out = add([in_x, scale])
+        
+        return out
 
-#ATICNN
-def ATICNN():
+
+def SENET():
     
     inputs = Input((9000, 1))
     
-    x = Conv1D(64, 3, padding='same')(inputs)
+    x = Conv1D(16, 32, padding='same')(inputs)
+    x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Conv1D(64, 3, padding='same')(x)
+    x = se_block(x, 16)
+    x = MaxPooling1D(4)(x)
+    
+    x = Conv1D(32, 16, padding='same')(x)
+    x = BatchNormalization()(x)
     x = Activation('relu')(x)
+    x = se_block(x, 32)
+    x = MaxPooling1D(4)(x)
+    
+    x = Conv1D(64, 9, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = se_block(x, 64)
+    x = MaxPooling1D(2)(x)
+    
+    x = Conv1D(64, 9, padding='same')(x)
+    x = BatchNormalization()(x)
+    x = Activation('relu')(x)
+    x = se_block(x, 64)
     x = MaxPooling1D(2)(x)
     
     x = Conv1D(128, 3, padding='same')(x)
+    x = BatchNormalization()(x)
     x = Activation('relu')(x)
+    x = se_block(x, 128)
+    x = MaxPooling1D(2)(x)
+    
     x = Conv1D(128, 3, padding='same')(x)
+    x = BatchNormalization()(x)
     x = Activation('relu')(x)
+    x = se_block(x, 128)
     x = MaxPooling1D(2)(x)
-    
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling1D(2)(x)
-    
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling1D(2)(x)
-    
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = Conv1D(256, 3, padding='same')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling1D(2)(x)
-    
-    x = LSTM(256,return_sequences=True)(x)
-    x = LSTM(256,return_sequences=True)(x)
-    
-    x = GlobalAveragePooling1D()(x)
-    x1 = Dense(256, activation="relu")(x)
-    x1 = Dense(256, activation="softmax")(x1)
-    x1 = multiply([x1, x])
-    x = add([x1, x])
-    x = Dense(3, activation="softmax")(x)
+
+    x = Flatten()(x)
+    x = Dense(300,  activation='relu')(x)
+    x = Dense(3,  activation='softmax')(x)
     
     model = Model(inputs, x)
     
     return model
 
 
-def focal_loss(y_true, y_pred):
+
+def en_loss(y_true, y_pred):
     
     epsilon = 1.e-7
-    alpha = tf.constant([[1],[1],[1]], dtype=tf.float32)
     gamma = float(0.3)
 
     y_true = tf.cast(y_true, tf.float32)
@@ -428,6 +442,5 @@ def focal_loss(y_true, y_pred):
     pos_pred = tf.pow(-tf.log(y_pred),gamma)
     nag_pred = tf.pow(-tf.log(1-y_pred),gamma)
     y_t = tf.multiply(y_true, pos_pred) + tf.multiply(1-y_true, nag_pred)
-    loss = tf.matmul(y_t, alpha)
-    loss = tf.reduce_mean(loss)
-    return loss
+    en_loss = tf.reduce_mean(y_t)
+    return en_loss
