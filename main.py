@@ -42,7 +42,7 @@ def train():
                 self.model_to_save.save(ex_path + '/models/model_%d.h5' % epoch)
     
     cbk = MyCbk(model)
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.90, patience=5, verbose=0, mode='auto', cooldown=0, min_lr=5e-6)
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.90, patience=5, verbose=0, mode='auto', cooldown=0, min_lr=1e-7)
     results = model.fit_generator(train_genrator.get_data(), 
               steps_per_epoch = train_genrator.data_num/args.batch_size,
               validation_data = test_genrator.get_data(),
