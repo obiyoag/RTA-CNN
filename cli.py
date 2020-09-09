@@ -9,7 +9,7 @@ def create_parser():
     parser.add_argument('--arch', '-a', metavar='ARCH', default='RTA_CNN',choices=architectures.__all__, 
                         help='model architecture: ' + ' | '.join(architectures.__all__))
     parser.add_argument('--epochs', default=100, type=int, metavar='N', help='number of total epochs to run')
-    parser.add_argument('--batch_size', default=32, type=int, metavar='N', help='batch size (default: 32)')
+    parser.add_argument('--batch_size', default=48, type=int, metavar='N', help='batch size (default: 32)')
     parser.add_argument('--lr', default=1e-4, type=float, metavar='LR', help='learning rate')
     parser.add_argument('--epoch2save', default=80, type=int, metavar='N', help='the starting epoch to models (default: 80)')
     parser.add_argument('--summary', default=False, type=bool, help="print the model summary")
